@@ -1,114 +1,193 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authRefresh } from "@/actions/auth";
-import { cookies } from "next/headers";
+import { clearAuthCookie, getCurrentUser } from "@/actions/auth";
+import { refreshAuthToken } from "@/lib/auth-utils";
 
-export default async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+// Configuration constants
+const ROUTES = {
+  PROTECTED: ['/dashboard', '/profile'] as const,
+  AUTH: [
+    '/auth/signin',
+    '/auth/signup', 
+    '/auth/otp-login',
+    '/auth/forgot-password',
+    '/auth/verify-otp',
+    '/auth/confirm-password-reset'
+  ] as const,
+  DEFAULT_REDIRECT: '/dashboard',
+  LOGIN: '/auth/signin'
+} as const;
+
+// Response headers for security
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+} as const;
+
+/**
+ * Creates a secure redirect response with security headers
+ */
+function createSecureRedirect(url: string, request: NextRequest): NextResponse {
+  const response = NextResponse.redirect(new URL(url, request.url));
   
-  // Get the auth token from cookies
-  const cookieStore = await cookies();
-  const authToken = cookieStore.get('pb_auth')?.value;
+  // Add security headers
+  Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
   
-  // Define protected routes that require authentication
-  const protectedRoutes = ['/dashboard', '/profile'];
-  const authRoutes = ['/auth/signin', '/auth/signup', '/auth/otp-login', '/auth/forgot-password'];
+  return response;
+}
+
+/**
+ * Creates a Next response with security headers
+ */
+function createSecureNext(): NextResponse {
+  const response = NextResponse.next();
   
-  // Check if the current path is a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  );
+  // Add security headers
+  Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
   
-  if(isProtectedRoute) {
-    await authRefresh();
+  return response;
+}
+
+/**
+ * Checks if the current path matches any of the given routes
+ */
+function isRouteMatch(pathname: string, routes: readonly string[]): boolean {
+  return routes.some(route => pathname.startsWith(route));
+}
+
+/**
+ * Handles authentication errors by clearing cookies and redirecting
+ */
+async function handleAuthError(request: NextRequest, pathname: string): Promise<NextResponse> {
+  try {
+    await clearAuthCookie();
+  } catch (error) {
+    // Log error in production monitoring system
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Failed to clear auth cookie:', error);
+    }
   }
+  
+  const loginUrl = new URL(ROUTES.LOGIN, request.url);
+  loginUrl.searchParams.set('callbackUrl', pathname);
+  return createSecureRedirect(loginUrl.toString(), request);
+}
 
-  // Check if the current path is an auth route
-  const isAuthRoute = authRoutes.some(route => 
-    pathname.startsWith(route)
-  );
+/**
+ * Validates user authentication and handles token refresh
+ */
+async function validateAuth(): Promise<{ isValid: boolean; error?: string }> {
+  try {
+    const authState = await refreshAuthToken();
+    
+    if (!authState.success) {
+      return { isValid: false, error: authState.error };
+    }
+    
+    return { isValid: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Authentication validation failed';
+    
+    // Log error for monitoring in production
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Auth validation error:', errorMessage);
+    }
+    
+    return { isValid: false, error: errorMessage };
+  }
+}
 
-  // If we have an auth token, check if it needs refreshing
-  if (authToken) {
-    try {
-      // Parse JWT to check expiration
-      const payload = JSON.parse(atob(authToken.split('.')[1]));
-      const currentTime = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = payload.exp - currentTime;
+/**
+ * Validates user session by checking current user
+ */
+async function validateUserSession(): Promise<boolean> {
+  try {
+    const user = await getCurrentUser();
+    return user.success;
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('User session validation error:', error);
+    }
+    return false;
+  }
+}
+
+export default async function middleware(request: NextRequest): Promise<NextResponse> {
+  const { pathname } = request.nextUrl;
+  
+  // Skip processing for health checks and monitoring endpoints
+  if (pathname === '/health' || pathname === '/api/health') {
+    return createSecureNext();
+  }
+  
+  try {
+    // Validate authentication
+    const authValidation = await validateAuth();
+    const isAuthenticated = authValidation.isValid;
+    
+    // Check route types
+    const isProtectedRoute = isRouteMatch(pathname, ROUTES.PROTECTED);
+    const isAuthRoute = isRouteMatch(pathname, ROUTES.AUTH);
+    
+    // Handle protected routes without authentication
+    if (isProtectedRoute && !isAuthenticated) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Redirecting unauthenticated user from protected route: ${pathname}`);
+      }
       
-      // If token expires in less than 5 minutes, try to refresh it
-      // if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
-      //   const newToken = await refreshAuthToken(authToken);
-      //   if (newToken) {
-      //     // Create response with new token
-      //     const response = NextResponse.next();
-      //     response.cookies.set('pb_auth', newToken, {
-      //       httpOnly: true,
-      //       secure: process.env.NODE_ENV === 'production',
-      //       sameSite: 'strict',
-      //       maxAge: 60 * 60 * 24 * 7, // 7 days
-      //     });
-      //     return response;
-      //   }
-      // }
+      return handleAuthError(request, pathname);
+    }
+    
+    // Handle auth routes with valid authentication
+    if (isAuthRoute && isAuthenticated) {
+      // Validate the user session to ensure token is still valid
+      const hasValidSession = await validateUserSession();
       
-      // If token is expired, clear it
-      if (timeUntilExpiry <= 0) {
-        const response = NextResponse.next();
-        response.cookies.delete('pb_auth');
-        
-        // If accessing protected route, redirect to login
-        if (isProtectedRoute) {
-          const loginUrl = new URL('/auth/signin', req.url);
-          loginUrl.searchParams.set('callbackUrl', pathname);
-          return NextResponse.redirect(loginUrl);
+      if (hasValidSession) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Redirecting authenticated user away from auth route: ${pathname}`);
         }
         
-        return response;
+        return createSecureRedirect(ROUTES.DEFAULT_REDIRECT, request);
+      } else {
+        // Session is invalid, clear cookie and allow access to auth routes
+        try {
+          await clearAuthCookie();
+        } catch (error) {
+          if (process.env.NODE_ENV === 'production') {
+            console.error('Failed to clear invalid auth cookie:', error);
+          }
+        }
       }
-    } catch (error) {
-      // Invalid token, clear it
-      const response = NextResponse.next();
-      response.cookies.delete('pb_auth');
-      
-      if (isProtectedRoute) {
-        const loginUrl = new URL('/auth/signin', req.url);
-        loginUrl.searchParams.set('callbackUrl', pathname);
-        return NextResponse.redirect(loginUrl);
-      }
-      
-      return response;
     }
-  }
-
-  // If accessing a protected route without authentication
-  if (isProtectedRoute && !authToken) {
-    const loginUrl = new URL('/auth/signin', req.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // If accessing auth routes while already authenticated
-  if (isAuthRoute && authToken) {
-    // Try to validate the token by checking if it's expired
-    try {
-      // Basic JWT expiration check (you can enhance this)
-      const payload = JSON.parse(atob(authToken.split('.')[1]));
-      const currentTime = Math.floor(Date.now() / 1000);
+    
+    // Continue with request for all other cases
+    return createSecureNext();
+    
+  } catch (error) {
+    // Handle unexpected errors gracefully
+    const errorMessage = error instanceof Error ? error.message : 'Unknown middleware error';
+    
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Middleware error:', errorMessage);
       
-      if (payload.exp && payload.exp > currentTime) {
-        // Token is still valid, redirect to dashboard
-        return NextResponse.redirect(new URL('/dashboard', req.url));
-      }
-    } catch (error) {
-      // Invalid token, clear it and allow access to auth routes
-      const response = NextResponse.next();
-      response.cookies.delete('pb_auth');
-      return response;
+      // In production, you might want to send this to your monitoring service
+      // Example: await sendToMonitoring({ error: errorMessage, pathname, timestamp: new Date() });
     }
+    
+    // For protected routes with errors, redirect to login for safety
+    if (isRouteMatch(pathname, ROUTES.PROTECTED)) {
+      return handleAuthError(request, pathname);
+    }
+    
+    // For other routes, allow the request to continue
+    return createSecureNext();
   }
-
-  // For all other cases, continue with the request
-  return NextResponse.next();
 }
 
 export const config = {
@@ -120,9 +199,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - health check endpoints
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public|health).*)',
   ],
 };
-
-// ... existing code ...

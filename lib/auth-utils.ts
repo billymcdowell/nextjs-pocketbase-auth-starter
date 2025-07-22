@@ -11,7 +11,7 @@ export async function getAuthToken(): Promise<string | null> {
 }
 
 // Helper function to validate JWT token
-export function validateJWT(token: string): { valid: boolean; payload?: any; error?: string } {
+export function validateJWT(token: string): { valid: boolean; payload?: unknown; error?: string } {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
@@ -26,7 +26,7 @@ export function validateJWT(token: string): { valid: boolean; payload?: any; err
     }
 
     return { valid: true, payload };
-  } catch (error) {
+  } catch {
     return { valid: false, error: 'Invalid token' };
   }
 }
@@ -59,7 +59,7 @@ export async function isAuthenticated(): Promise<boolean> {
 }
 
 // Function to get current user data
-export async function getCurrentUser(): Promise<{ success: boolean; data?: any; error?: string }> {
+export async function getCurrentUser(): Promise<{ success: boolean; data?: unknown; error?: string }> {
   const token = await getAuthToken();
   
   if (!token) {
@@ -84,7 +84,7 @@ export async function getCurrentUser(): Promise<{ success: boolean; data?: any; 
 }
 
 // Function to require authentication (redirects if not authenticated)
-export async function requireAuth(redirectTo: string = '/auth/signin'): Promise<any> {
+export async function requireAuth(redirectTo: string = '/auth/signin'): Promise<unknown> {
   const authenticated = await isAuthenticated();
   
   if (!authenticated) {
@@ -126,4 +126,16 @@ export async function refreshAuthToken(): Promise<{ success: boolean; error?: st
       error: error instanceof Error ? error.message : 'Token refresh failed',
     };
   }
+} 
+
+export async function getUserFromCookie(): Promise<unknown | null> {
+  return null;
+}
+
+export async function signInWithProvider(): Promise<unknown | null> {
+  return null;
+}
+
+export async function updateUserProfile(user: unknown): Promise<unknown> {
+  return user;
 } 

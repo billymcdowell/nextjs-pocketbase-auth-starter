@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { isAuthenticated as isAuthenticatedAction, logout } from "@/actions/auth";
+import { logout } from "@/actions/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "./ui/button";
 import { useAuth } from "@/components/AuthProvider";

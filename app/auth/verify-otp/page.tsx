@@ -1,8 +1,13 @@
 import VerifyOTPForm from '@/components/forms/auth/VerifyOTPForm'
 import Link from 'next/link'
 
-export default function VerifyOtpPage({ searchParams }: { searchParams: { otpId: string } }) {
-  const otpId = searchParams.otpId
+interface PageProps {
+  searchParams: Promise<{ otpId: string }>;
+}
+
+export default async function VerifyOtpPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const otpId = params.otpId;
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

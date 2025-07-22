@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import { useActionState } from 'react'
-import { useFormStatus } from 'react-dom'
-import { verifyOTPAction, requestOTPAction } from '@/actions/auth'
-import OTPInput from '@/components/auth/OTPInput'
+import { verifyOTPAction } from '@/actions/auth'
 import { Button } from '@/components/ui/button'
 import { redirect } from 'next/navigation'
 import { Label } from '@/components/ui/label'
@@ -90,7 +88,7 @@ export default function VerifyOTPForm({ otpId }: { otpId: string }) {
             variant="link"
             onClick={() => { console.log('resend') }}
           >
-            Didn't receive the code? Resend
+            Didn&apos;t receive the code? Request a new one.
           </Button>
         </div>
       </form>

@@ -36,20 +36,20 @@ export default async function middleware(req: NextRequest) {
       const timeUntilExpiry = payload.exp - currentTime;
       
       // If token expires in less than 5 minutes, try to refresh it
-      if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
-        const newToken = await refreshAuthToken(authToken);
-        if (newToken) {
-          // Create response with new token
-          const response = NextResponse.next();
-          response.cookies.set('pb_auth', newToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-          });
-          return response;
-        }
-      }
+      // if (timeUntilExpiry < 300 && timeUntilExpiry > 0) {
+      //   const newToken = await refreshAuthToken(authToken);
+      //   if (newToken) {
+      //     // Create response with new token
+      //     const response = NextResponse.next();
+      //     response.cookies.set('pb_auth', newToken, {
+      //       httpOnly: true,
+      //       secure: process.env.NODE_ENV === 'production',
+      //       sameSite: 'strict',
+      //       maxAge: 60 * 60 * 24 * 7, // 7 days
+      //     });
+      //     return response;
+      //   }
+      // }
       
       // If token is expired, clear it
       if (timeUntilExpiry <= 0) {

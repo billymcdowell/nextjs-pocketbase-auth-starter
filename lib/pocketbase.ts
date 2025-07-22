@@ -9,7 +9,7 @@ export async function pbFetch<T>(path: string, options: RequestInit = {}): Promi
     },
   });
   if (!res.ok) throw new Error(await res.text());
-  return res as any as T;
+  return res as unknown as T;
 }
 
 // Helper function to make API requests

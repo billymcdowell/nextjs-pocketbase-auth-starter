@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useActionState } from 'react'
-import { requestOTPAction, otpAuthAction } from '@/actions/auth'
+import { requestOTPAction } from '@/actions/auth'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'

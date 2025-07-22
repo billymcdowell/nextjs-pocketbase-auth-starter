@@ -1,8 +1,13 @@
 import ConfirmPasswordResetForm from '@/components/forms/auth/ConfirmPasswordResetForm'
 import Link from 'next/link'  
 
-export default function ResetPasswordPage({ searchParams }: { searchParams: { token: string } }) {
-  const token = searchParams.token
+interface PageProps {
+  searchParams: Promise<{ token?: string }>;
+}
+
+export default async function ConfirmResetPasswordPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const token = params.token || '';
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

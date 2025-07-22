@@ -1,4 +1,6 @@
-const POCKETBASE_URL = process.env.POCKETBASE_URL || "http://127.0.0.1:8090";
+import { getAuthToken } from "@/actions/auth";
+
+export const POCKETBASE_URL = process.env.POCKETBASE_URL || "http://127.0.0.1:8090";
 
 export async function pbFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${POCKETBASE_URL}/api/${path}`, {
@@ -38,4 +40,14 @@ export async function makeRequest(endpoint: string, options: RequestInit = {}) {
   }
 
   return { ...data, status: response.status }
+}
+
+export async function makeRequestWithAuth(endpoint: string, options: RequestInit = {}) {
+  const authToken = await getAuthToken();
+  return pbFetch(endpoint, {
+    ...options,
+    headers: {
+      ...(authToken ? { Authorization: authToken } : {}),
+    },
+  });
 }

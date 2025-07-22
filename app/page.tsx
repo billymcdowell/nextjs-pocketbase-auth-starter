@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -17,7 +18,7 @@ export default function Home() {
           Next.js + Pocketbase Auth Starter
         </h1>
         <p className="text-lg text-center text-muted-foreground max-w-2xl">
-          A starter template for building modern, secure web apps with <span className="font-semibold">Next.js</span> and <span className="font-semibold">Pocketbase</span>.<br/>
+          A starter template for building modern, secure web apps with <span className="font-semibold">Next.js</span> and <span className="font-semibold">Pocketbase</span>.<br />
           <span className="text-sm text-primary">Self-hosted, type-safe, and vendor lock-in free.</span>
         </p>
       </header>
@@ -59,26 +60,26 @@ export default function Home() {
       </section>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <Link href="/auth/signup" className="rounded-full bg-primary hover:bg-primary/80 text-white font-semibold px-6 py-3 shadow transition-colors text-center">
-          Try the Demo
-        </Link>
-        <a
-          href="https://github.com/williammcdowell/nextjs-pocketbase-auth-starter"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-full border border-primary text-primary hover:bg-primary/10 font-semibold px-6 py-3 shadow transition-colors text-center"
-        >
-          View on GitHub
-        </a>
-        <Link href="/dashboard" className="rounded-full bg-primary hover:bg-primary/80 text-white font-semibold px-6 py-3 shadow transition-colors text-center">
-          Go to Dashboard
-        </Link>
+        <Button asChild variant="outline">
+          <Link
+            href="https://github.com/billymcdowell/nextjs-pocketbase-auth-starter"
+            target="_blank"
+          >
+            View on GitHub
+          </Link>
+        </Button>
+        <Button asChild>
+          <Link href="/auth/signin">
+            Go to Sign In
+          </Link>
+        </Button>
       </div>
-
+      <div>
         <footer className="text-xs text-muted-foreground mt-auto mb-2 text-center">
-        <span>MIT Licensed. Built with Next.js & Pocketbase. </span>
-        <a href="https://nextjs.org/" className="underline hover:text-primary" target="_blank" rel="noopener noreferrer">Learn more</a>
-      </footer>
+          <span>MIT Licensed. Built with Next.js & Pocketbase. </span>
+          <a href="https://nextjs.org/" className="underline hover:text-primary" target="_blank" rel="noopener noreferrer">Learn more</a>
+        </footer>
+      </div>
     </div>
   );
 }

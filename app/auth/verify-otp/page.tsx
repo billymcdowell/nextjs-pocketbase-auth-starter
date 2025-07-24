@@ -1,4 +1,4 @@
-import VerifyOTPForm from '@/components/forms/auth/VerifyOTPForm'
+import VerifyOTPForm from '@/components/forms/auth/verify-otp-form'
 import Link from 'next/link'
 
 interface PageProps {

@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { makeRequest } from '@/lib/pocketbase'
+import { makeRequest, makeRequestWithAuth    } from '@/lib/pocketbase'
 
 // Types
 interface AuthResponse {
@@ -37,9 +37,15 @@ interface FormState {
 const AUTH_COLLECTION = process.env.AUTH_COLLECTION || 'users'
 
 // Helper function to get auth token from cookies
-export async function getAuthToken(): Promise<string | null> {
+export async function getAuthToken(): Promise<any | null> {
     const cookieStore = await cookies()
-    return cookieStore.get('pb_auth')?.value || null
+    const token = cookieStore.get('pb_auth')?.value || null
+    console.log("token", token)
+    if (token) {
+        const parsedToken = JSON.parse(token)
+        return parsedToken.token
+    }
+    return null
 }
 
 // Helper function to set auth cookie
@@ -83,7 +89,7 @@ export async function loginAction(prevState: FormState, formData: FormData): Pro
         })
 
         console.log(JSON.stringify(data, null, 2))
-        await setAuthCookie(data.token)
+        await setAuthCookie(JSON.stringify(data))
         return {
             success: true,
             message: 'Login successful'
@@ -421,7 +427,7 @@ export async function otpAuthAction(prevState: FormState, formData: FormData): P
             }),
         })
 
-        await setAuthCookie(data.token)
+        await setAuthCookie(JSON.stringify(data))
 
         // Use redirect() which will throw a special error that Next.js handles
         redirect('/dashboard')
@@ -473,7 +479,7 @@ export async function verifyOTPAction(prevState: FormState, formData: FormData):
 
         if (data.status == 200) {
             console.log(JSON.stringify(data, null, 2))
-            await setAuthCookie(data.token)
+            await setAuthCookie(JSON.stringify(data))
             return {
                 success: true,
                 message: 'OTP verified successfully!'
@@ -505,7 +511,7 @@ export async function authWithPassword(email: string, password: string): Promise
             }),
         })
 
-        await setAuthCookie(data.token)
+        await setAuthCookie(JSON.stringify(data))
 
         return {
             success: true,
@@ -553,7 +559,7 @@ export async function authWithOTP(email: string, otp: string): Promise<AuthResul
             }),
         })
 
-        await setAuthCookie(data.token)
+        await setAuthCookie(JSON.stringify(data))
 
         return {
             success: true,
@@ -611,7 +617,7 @@ export async function authRefresh(): Promise<AuthResult> {
             },
         })
 
-        await setAuthCookie(data.token)
+        await setAuthCookie(JSON.stringify(data))
 
         return {
             success: true,
@@ -828,12 +834,19 @@ export async function getCurrentUser(): Promise<{ success: boolean; data?: any; 
             }
         }
 
-        // Decode token to get user info (basic implementation)
-        const payload = JSON.parse(atob(token.split('.')[1]))
-
-        return {
-            success: true,
-            data: payload,
+        const cookieStore = await cookies()
+        const user = cookieStore.get('pb_auth')?.value || null
+        console.log("user", user)
+        if (user) {
+            return {
+                success: true,
+                data: JSON.parse(user).record,
+            }
+        } else {
+            return {
+                success: false,
+                error: 'Not authenticated',
+            }
         }
     } catch (error) {
         return {
@@ -877,4 +890,26 @@ export async function requireAuth<T>(
     }
 
     return await action()
+}
+
+/**
+ * Server action to update the current user's profile
+ */
+export async function updateProfile(prevState: any, formData: FormData): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+    const userId = formData.get('userId') as string;
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    await makeRequestWithAuth(`/collections/${AUTH_COLLECTION}/records/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, email }),
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to update profile' };
+  }
 }

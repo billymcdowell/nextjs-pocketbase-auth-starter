@@ -1,4 +1,4 @@
-import OTPLoginForm from '@/components/forms/auth/OTPLoginForm'
+import OTPLoginForm from '@/components/forms/auth/otp-login-form'
 import Link from 'next/link'
 
 export default function OtpLoginPage() {

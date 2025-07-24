@@ -6,26 +6,37 @@ import { useEffect, useState } from "react";
 
 export function useRealtime(collection: string, recordId?: string) {
   const [clientId, setClientId] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [data, setData] = useState<any>([]);
+  const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
 
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       if (recordId) {
-        const res = await makeRequestWithAuth(`collections/${collection}/records/${recordId}`, {
-          method: 'GET',
-        })
-        const data = await (res as any).json();
-        setData(data);
+        try {
+          const res = await makeRequestWithAuth(`collections/${collection}/records/${recordId}`, {
+            method: 'GET',
+          })
+          const data = await (res as any).json();
+          setData(data);
+        } catch (error) {
+          setError('Error fetching data: ' + error);
+        }
       } else {
-        const res = await makeRequestWithAuth(`collections/${collection}/records`, {
-          method: 'GET',
-        })
-        const data = await (res as any).json();
-        setData(data.items);
+        try {
+          const res = await makeRequestWithAuth(`collections/${collection}/records`, {
+            method: 'GET',
+          })
+          const data = await (res as any).json();
+          setData(data.items || []);
+        } catch (error) {
+          setError('Error fetching data: ' + error);
+        }
       }
     }
 
@@ -38,6 +49,7 @@ export function useRealtime(collection: string, recordId?: string) {
     eventSource.addEventListener('PB_CONNECT', (event) => {
       const data = JSON.parse(event.data);
       setClientId(data.clientId);
+      setIsConnected(true);
     });
 
     if (recordId) {
@@ -76,12 +88,13 @@ export function useRealtime(collection: string, recordId?: string) {
       eventSource.close();
     };
     // Cleanup on unmount
+    setIsLoading(false);
     return () => {
       eventSource.close();
     };
   }, []);
 
-  if (clientId) {
+  if (clientId && !isConnected) {
     makeRequestWithAuth('realtime', {
       method: 'POST',
       body: JSON.stringify({
@@ -94,5 +107,7 @@ export function useRealtime(collection: string, recordId?: string) {
   return {
     data,
     error,
+    isConnected,
+    isLoading,
   }
 }

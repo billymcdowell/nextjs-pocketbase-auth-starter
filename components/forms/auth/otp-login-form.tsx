@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { redirect } from 'next/navigation'
-import { useAuth } from '@/components/AuthProvider'
+import { useAuth } from '@/components/auth-provider'
 
 const initialState = {
   success: false,

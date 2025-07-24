@@ -1,4 +1,4 @@
-import ConfirmPasswordResetForm from '@/components/forms/auth/ConfirmPasswordResetForm'
+import ConfirmPasswordResetForm from '@/components/forms/auth/confirm-password-reset-form'
 import Link from 'next/link'  
 
 interface PageProps {

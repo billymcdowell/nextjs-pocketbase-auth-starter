@@ -1,4 +1,4 @@
-import LoginForm from '@/components/forms/auth/LoginForm'
+import LoginForm from '@/components/forms/auth/login-form'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'

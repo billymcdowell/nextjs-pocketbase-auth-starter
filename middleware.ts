@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clearAuthCookie, getCurrentUser } from "@/actions/auth";
-import { refreshAuthToken } from "@/lib/auth-utils";
+import { authRefresh } from "@/actions/auth";
 
 // Configuration constants
 const ROUTES = {
@@ -83,7 +83,7 @@ async function handleAuthError(request: NextRequest, pathname: string): Promise<
  */
 async function validateAuth(): Promise<{ isValid: boolean; error?: string }> {
   try {
-    const authState = await refreshAuthToken();
+    const authState = await authRefresh();
     
     if (!authState.success) {
       return { isValid: false, error: authState.error };

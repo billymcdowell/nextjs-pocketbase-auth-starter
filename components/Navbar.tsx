@@ -1,22 +1,13 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
-import { logout } from "@/actions/auth";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "./ui/button";
-import { useAuth } from "@/components/AuthProvider";
-import { LogOutIcon } from "lucide-react";
-import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/actions/auth";
+import AuthenticatedNavOptions from "./authenticated-nav-options";  
 
-export default function Navbar() {
-  const { isAuthenticated, refreshAuth } = useAuth();
+export default async function Navbar() {
 
-  const handleLogout = async () => {
-    await logout();
-    refreshAuth();
-    redirect('/auth/signin')
-  };
+  const user = await getCurrentUser();
 
   return (
     <nav className="w-full flex items-center justify-between px-6 py-4 border-b bg-background">
@@ -24,14 +15,14 @@ export default function Navbar() {
         Nextjs Pocketbase Auth Starter
       </Link>
       <div className="flex items-center gap-2">
-        {isAuthenticated ? (
-          <Button
-            onClick={() => handleLogout()}
-            variant="outline"
-            size="icon"
-          >
-            <LogOutIcon className="w-4 h-4" />
-          </Button>
+        {user.success ? (
+          <>
+           <AuthenticatedNavOptions user={{
+             name: user.data?.name,
+             email: user.data?.email,
+             avatar: user.data?.avatar || ""
+           }} />
+          </>
         ) : (
           <Button asChild>
             <Link

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/components/AuthProvider'
+import { useAuth } from '@/components/auth-provider'
 
 const initialState = {
   success: false,
@@ -18,7 +18,6 @@ export default function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, initialState)
   const router = useRouter()
   const { refreshAuth } = useAuth()
-  console.log("state in form", JSON.stringify(state, null, 2))
   // Handle success/error callbacks
   if (state.success) {
     refreshAuth();
